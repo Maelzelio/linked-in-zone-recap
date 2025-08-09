@@ -39,7 +39,7 @@ async function main() {
   if (!matchups.length) {
     const content = [
       "🏈 **LinkedIn Zone — Preseason Check**",
-      "Webhook is live ✅. Waiting for regular-season matchups to post weekly recaps."
+      "Chair is occupied ✅. Warming up. Watch this space for future commentary."
     ].join("\n");
     const resp = await fetch(WEBHOOK, {
       method: "POST", headers: { "Content-Type": "application/json" },
