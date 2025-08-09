@@ -1,0 +1,18 @@
+name: Weekly Recap to Discord
+on:
+  schedule:
+    - cron: "0 16 * * 2"   # Tuesdays 16:00 UTC (~9:00 AM PT during DST)
+  workflow_dispatch: {}     # lets you run it manually
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node post_weekly_recap.js
+        env:
+          LEAGUE_ID: "1180196377903001600"
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
