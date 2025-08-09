@@ -1,47 +1,67 @@
 // post_weekly_recap.js
 const BASE = "https://api.sleeper.app/v1";
-const LEAGUE_ID = process.env.LEAGUE_ID || "1259729726277160960"; // your league
-const WEBHOOK = process.env.DISCORD_WEBHOOK_URL; // set in GitHub Secrets
-
-if (!WEBHOOK) {
-  console.error("Missing DISCORD_WEBHOOK_URL");
-  process.exit(1);
-}
+const LEAGUE_ID = process.env.LEAGUE_ID || "1259729726277160960";
+const WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
+if (!WEBHOOK) { console.error("Missing DISCORD_WEBHOOK_URL"); process.exit(1); }
 
 const j = (u) => fetch(u).then(r => r.json());
+const teamName = (u) => (u?.metadata?.team_name) || u?.display_name || "Unknown Team";
 
-const nameFromUser = (u) =>
-  (u?.metadata?.team_name) || u?.display_name || "Unknown Team";
+// Find the most recent week (<= current) that actually has matchups
+async function firstWeekWithMatchups(leagueId, startWeek) {
+  const start = Number(startWeek || 1);
+  for (let w = start; w >= 1; w--) {
+    const m = await j(`${BASE}/league/${leagueId}/matchups/${w}`);
+    if (Array.isArray(m) && m.length > 0) return { week: w, matchups: m };
+  }
+  return { week: null, matchups: [] };
+}
 
 async function main() {
-  // current NFL week
+  // Current NFL state (has week/leg) per Sleeper docs
   const state = await j(`${BASE}/state/nfl`);
-  const week = state.week || state.leg;
+  const currentWeek = Number(state.week || state.leg || 1);
 
-  // league data
-  const [matchups, rosters, users] = await Promise.all([
-    j(`${BASE}/league/${LEAGUE_ID}/matchups/${week}`),
+  // Map roster -> team display
+  const [rosters, users] = await Promise.all([
     j(`${BASE}/league/${LEAGUE_ID}/rosters`),
-    j(`${BASE}/league/${LEAGUE_ID}/users`),
+    j(`${BASE}/league/${LEAGUE_ID}/users`)
   ]);
-
   const userById = Object.fromEntries(users.map(u => [u.user_id, u]));
-  const teamNameByRoster = Object.fromEntries(
-    rosters.map(r => [r.roster_id, nameFromUser(userById[r.owner_id])])
+  const nameByRoster = Object.fromEntries(
+    rosters.map(r => [r.roster_id, teamName(userById[r.owner_id])])
   );
 
+  // Get matchups (or detect preseason / no data)
+  const { week, matchups } = await firstWeekWithMatchups(LEAGUE_ID, currentWeek);
+
+  // If no matchups exist yet, just verify webhook wiring
+  if (!matchups.length) {
+    const content = [
+      "🏈 **LinkedIn Zone — Preseason Check**",
+      "Webhook is live ✅. Waiting for regular-season matchups to post weekly recaps."
+    ].join("\n");
+    const resp = await fetch(WEBHOOK, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content })
+    });
+    console.log("Discord webhook status:", resp.status); // 204 = success
+    return;
+  }
+
+  // Build team results safely
   const teams = matchups.map(m => ({
     roster_id: m.roster_id,
-    name: teamNameByRoster[m.roster_id] || `Roster ${m.roster_id}`,
+    name: nameByRoster[m.roster_id] || `Roster ${m.roster_id}`,
     points: Number(m.points || 0),
     matchup_id: m.matchup_id
   }));
 
-  // high/low
-  const top = teams.reduce((a,b)=> (b.points > a.points ? b : a), teams[0]);
-  const bottom = teams.reduce((a,b)=> (b.points < a.points ? b : a), teams[0]);
+  // Safe reducers (teams is non-empty here)
+  const top = teams.reduce((a,b)=> (b.points > a.points ? b : a));
+  const bottom = teams.reduce((a,b)=> (b.points < a.points ? b : a));
 
-  // matchup notes
+  // Blowouts / nail-biters
   const byMatch = {};
   for (const t of teams) (byMatch[t.matchup_id] ??= []).push(t);
   const notes = [];
@@ -54,10 +74,7 @@ async function main() {
     }
   }
 
-  const trash = [
-    `🏆 ${top.name} got *endorsed for touchdowns* (${top.points.toFixed(2)}).`,
-    `🪦 ${bottom.name}, update your status to **Open to Work** (on waivers).`
-  ].join(" ");
+  const trash = `🏆 ${top.name} got *endorsed for touchdowns* (${top.points.toFixed(2)}). 🪦 ${bottom.name}, update your status to **Open to Work** (on waivers).`;
 
   const content = [
     `🏈 **LinkedIn Zone — Week ${week} Recap**`,
@@ -68,12 +85,11 @@ async function main() {
     `💬 ${trash}`
   ].join("\n");
 
-  // Discord webhook (content has a 2000-char limit; we're well under it)
-  await fetch(WEBHOOK, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content })
+  const resp = await fetch(WEBHOOK, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }) // Discord webhook content max is 2000 chars
   });
+  console.log("Discord webhook status:", resp.status); // 204 or 200 = success
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
