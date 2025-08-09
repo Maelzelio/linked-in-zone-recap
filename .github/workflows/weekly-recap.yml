@@ -1,7 +1,16 @@
 name: Weekly Recap to Discord
 on:
   schedule:
-    - cron: "0 16 * * 2"   # Tuesdays 16:00 UTC (~9:00 AM PT during DST)
+    # Sep 2025 (CDT, UTC-5) → 14:15 UTC
+    - cron: "15 14 9,16,23,30 9 *"
+    # Oct 2025 (CDT) → 14:15 UTC
+    - cron: "15 14 7,14,21,28 10 *"
+    # Nov 2025 (CST, UTC-6) → 15:15 UTC
+    - cron: "15 15 4,11,18,25 11 *"
+    # Dec 2025 (CST) → 15:15 UTC
+    - cron: "15 15 2,9,16,23,30 12 *"
+    # Final recap after Week 18: Tue Jan 6, 2026 @ 9:15 AM Central (CST → 15:15 UTC)
+    - cron: "15 15 6 1 *"
   workflow_dispatch: {}     # lets you run it manually
 
 jobs:
