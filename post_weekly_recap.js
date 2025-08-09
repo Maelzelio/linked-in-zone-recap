@@ -18,6 +18,16 @@ async function firstWeekWithMatchups(leagueId, startWeek) {
 }
 
 async function main() {
+  // Only run between 2025-09-04 and 2026-01-06 (America/Chicago)
+  const now = new Date();
+  const chicagoNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  const seasonStart = new Date('2025-09-04T00:00:00-05:00'); // CDT
+  const seasonEnd   = new Date('2026-01-06T23:59:59-06:00'); // CST
+  if (chicagoNow < seasonStart || chicagoNow > seasonEnd) {
+    console.log('Out of season — skipping post.');
+    return; // or process.exit(0);
+  }
+  
   // Current NFL state (has week/leg) per Sleeper docs
   const state = await j(`${BASE}/state/nfl`);
   const currentWeek = Number(state.week || state.leg || 1);
