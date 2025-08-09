@@ -1,6 +1,6 @@
 // post_weekly_recap.js
 const BASE = "https://api.sleeper.app/v1";
-const LEAGUE_ID = process.env.LEAGUE_ID || "1180196377903001600"; // your league
+const LEAGUE_ID = process.env.LEAGUE_ID || "1259729726277160960"; // your league
 const WEBHOOK = process.env.DISCORD_WEBHOOK_URL; // set in GitHub Secrets
 
 if (!WEBHOOK) {
