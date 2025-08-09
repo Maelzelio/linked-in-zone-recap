@@ -14,5 +14,5 @@ jobs:
           node-version: 20
       - run: node post_weekly_recap.js
         env:
-          LEAGUE_ID: "1180196377903001600"
+          LEAGUE_ID: "1259729726277160960"
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
