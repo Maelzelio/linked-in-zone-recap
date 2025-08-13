@@ -1,0 +1,34 @@
+name: Wind & Weather Watch
+on:
+  schedule:
+    # THU pre-TNF (~90m before 7:15 PM CT)
+    - cron: "45 23 * 9-10 4"   # Sep–Oct (CDT -> 18:45 CT)
+    - cron: "45 0 * 11-12 5"   # Nov–Dec (CST -> 18:45 CT; Thu 00:45 UTC Fri)
+    - cron: "45 0 * 1 5"       # Jan (CST)
+    # SUN early window (~2h before 12:00 PM CT)
+    - cron: "0 16 * 9-10 0"    # Sep–Oct (CDT -> 11:00 CT)
+    - cron: "0 17 * 11-12 0"   # Nov–Dec (CST -> 11:00 CT)
+    - cron: "0 17 * 1 0"       # Jan (CST)
+    # MON pre-MNF (~60m before 7:15 PM CT)
+    - cron: "15 0 * 9-10 2"    # Sep–Oct (CDT -> 19:15 CT; Tue 00:15 UTC)
+    - cron: "15 1 * 11-12 3"   # Nov–Dec (CST -> 19:15 CT)
+    - cron: "15 1 * 1 3"       # Jan (CST)
+  workflow_dispatch: {}
+
+jobs:
+  weather:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Post Wind & Weather Watch
+        run: node weather_watch.js
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SEASON: "2025"
+          # tweak thresholds if you want:
+          WIND_SUSTAINED: "18"
+          WIND_GUST: "30"
+          PRECIP_PCT: "40"
