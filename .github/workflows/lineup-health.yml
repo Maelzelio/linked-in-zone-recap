@@ -1,0 +1,29 @@
+name: Lineup Health Checks
+on:
+  schedule:
+    # THU pre-TNF (about ~1h45 before kickoff)
+    - cron: "30 22 * 9-10 4"   # Sep–Oct (CDT → 17:30 CT)
+    - cron: "30 23 * 11-12 4"  # Nov–Dec (CST → 17:30 CT)
+    - cron: "30 23 * 1 4"      # Jan (CST)
+    # SUN early window (~90m before 12:00 CT kickoffs)
+    - cron: "30 15 * 9-10 0"   # Sep–Oct (CDT → 10:30 CT)
+    - cron: "30 16 * 11-12 0"  # Nov–Dec (CST → 10:30 CT)
+    - cron: "30 16 * 1 0"      # Jan (CST)
+    # MON pre-MNF (~6:15 PM CT)
+    - cron: "15 23 * 9-10 1"   # Sep–Oct (CDT → 18:15 CT, Monday)
+    - cron: "15 0 * 11-12 2"   # Nov–Dec (CST → 18:15 CT, Monday -> 00:15 UTC Tuesday)
+    - cron: "15 0 * 1 2"       # Jan (CST)
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node lineup_health_check.js
+        env:
+          LEAGUE_ID: "1259729726277160960"
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
